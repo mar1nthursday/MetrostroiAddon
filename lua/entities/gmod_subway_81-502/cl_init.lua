@@ -2513,7 +2513,7 @@ function ENT:Think()
 
     for k,v in ipairs(self.AnnouncerPositions) do
         volume = volume*(v[3] or 1)
-        self:SetSoundState("announcer_noiseW"..k,noise>-1 and noisevolume*volume or 0,1)
+        self:SetSoundState("announcer_noiseW"..k,work and noisevolume*volume or 0,1) -- was noise>-1, silenced the gaps between phrases (#625)
         for i=1,3 do
             self:SetSoundState(Format("announcer_noise%d_%d",i,k),(work and i==noise) and volume*self.BPSNBuzzVolume*self:GetNW2Float("UPOBuzzVolume",1) or 0,1)
         end
