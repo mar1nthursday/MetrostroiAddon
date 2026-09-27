@@ -106,32 +106,49 @@ if not Metrostroi then
     Metrostroi.BaseSystems = {}
 end
 
+--------------------------------------------------------------------------------
+-- Central train spawn/remove tracking (#635)
+-- Single point of "is this a train?" classification, fired as generic hooks
+-- so other systems (SpawnedTrains, turbostroi, ...) don't need their own
+-- duplicate OnEntityCreated/EntityRemoved + classname check.
+--------------------------------------------------------------------------------
+function Metrostroi.IsTrainEntity(ent)
+    return IsValid(ent) and (ent.Base == "gmod_subway_base" or scripted_ents.IsBasedOn(ent:GetClass(), "gmod_subway_base"))
+end
+
+local trackedTrains = setmetatable({}, {__mode = "k"})
+
+hook.Add("OnEntityCreated","Metrostroi_TrainTracking",function(ent)
+    timer.Simple(0,function()
+        if Metrostroi.IsTrainEntity(ent) then
+            trackedTrains[ent] = true
+            hook.Run("Metrostroi_TrainSpawned",ent)
+        end
+    end)
+end)
+
+hook.Add("EntityRemoved","Metrostroi_TrainTracking",function(ent)
+    if trackedTrains[ent] then
+        trackedTrains[ent] = nil
+        hook.Run("Metrostroi_TrainRemoved",ent)
+    end
+end)
+
 --List of spawned trains
 Metrostroi.SpawnedTrains = {}
 for k,ent in pairs(ents.GetAll()) do
-    if ent.Base == "gmod_subway_base" or ent:GetClass() == "gmod_subway_base" then
+    if Metrostroi.IsTrainEntity(ent) then
         Metrostroi.SpawnedTrains[ent] = ent:GetTable()
+        trackedTrains[ent] = true
     end
 end
 
-hook.Add("EntityRemoved","MetrostroiTrains",function(ent)
-    if Metrostroi.SpawnedTrains[ent] then
-        Metrostroi.SpawnedTrains[ent] = nil
-    end
+hook.Add("Metrostroi_TrainSpawned","MetrostroiTrains",function(ent)
+    Metrostroi.SpawnedTrains[ent] = ent:GetTable()
 end)
-if SERVER then
-    hook.Add("OnEntityCreated","MetrostroiTrains",function(ent)
-        if ent.Base == "gmod_subway_base" or  ent:GetClass() == "gmod_subway_base" then
-            Metrostroi.SpawnedTrains[ent] = ent:GetTable()
-        end
-    end)
-else
-    hook.Add("OnEntityCreated","MetrostroiTrains",function(ent)
-        if ent:GetClass() == "gmod_subway_base" or scripted_ents.IsBasedOn(ent:GetClass(), "gmod_subway_base") then
-            Metrostroi.SpawnedTrains[ent] = ent:GetTable()
-        end
-    end)
-end
+hook.Add("Metrostroi_TrainRemoved","MetrostroiTrains",function(ent)
+    Metrostroi.SpawnedTrains[ent] = nil
+end)
 
 ------------------------
 -- Metrostroi version --

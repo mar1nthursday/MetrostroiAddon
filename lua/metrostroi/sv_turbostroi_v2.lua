@@ -16,25 +16,19 @@ if Turbostroi and not TURBOSTROI then
 
     local unpack = unpack
 
-    hook.Add("EntityRemoved","Turbostroi",function(ent)
-        if dataCache[ent] then
-            dataCache[ent] = nil
-        end
-        if turbostroiTrains[ent] then
-            turbostroiTrains[ent] = nil
-        end
+    hook.Add("Metrostroi_TrainRemoved","Turbostroi",function(ent)
+        dataCache[ent] = nil
+        turbostroiTrains[ent] = nil
     end)
     for k,ent in pairs(ents.GetAll()) do
-        if ent.Base == "gmod_subway_base" and not ent.NoTrain and not ent.DontAccelerateSimulation then
+        if Metrostroi.IsTrainEntity(ent) and not ent.NoTrain and not ent.DontAccelerateSimulation then
             turbostroiTrains[ent] = true
         end
     end
-    hook.Add("OnEntityCreated","Turbostroi",function(ent)
-        timer.Simple(0,function()
-            if IsValidEnt(ent) and ent.Base == "gmod_subway_base" and not ent.NoTrain and not ent.DontAccelerateSimulation then
-                turbostroiTrains[ent] = true
-            end
-        end)
+    hook.Add("Metrostroi_TrainSpawned","Turbostroi",function(ent)
+        if not ent.NoTrain and not ent.DontAccelerateSimulation then
+            turbostroiTrains[ent] = true
+        end
     end)
     local id,system,name,index,value
     local msg_count = 0
